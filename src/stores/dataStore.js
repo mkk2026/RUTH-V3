@@ -1,0 +1,41 @@
+import { create } from 'zustand';
+
+const useDataStore = create((set) => ({
+  messages: [],
+  cadData: null,
+  cadThoughts: '',
+  cadRetryInfo: { attempt: 1, maxAttempts: 3, error: null },
+  browserData: { image: null, logs: [] },
+  confirmationRequest: null,
+  kasaDevices: [],
+  slicingStatus: { active: false, percent: 0, message: '' },
+  activePrintStatus: null,
+  printerCount: 0,
+  notifications: [],
+  scheduledTasks: [],
+  plugins: [],
+  memoryStats: null,
+  modelConfig: {},
+
+  addMessage: (msg) => set((state) => ({ messages: [...state.messages, msg] })),
+  setMessages: (messages) => set({ messages }),
+  clearMessages: () => set({ messages: [] }),
+  setCadData: (data) => set({ cadData: data }),
+  setCadThoughts: (thoughts) => set({ cadThoughts: thoughts }),
+  appendCadThought: (text) => set((state) => ({ cadThoughts: state.cadThoughts + text })),
+  setCadRetryInfo: (info) => set({ cadRetryInfo: info }),
+  setBrowserData: (data) => set({ browserData: data }),
+  setConfirmationRequest: (req) => set({ confirmationRequest: req }),
+  setKasaDevices: (devices) => set({ kasaDevices: devices }),
+  setSlicingStatus: (status) => set({ slicingStatus: status }),
+  setActivePrintStatus: (status) => set({ activePrintStatus: status }),
+  setPrinterCount: (count) => set({ printerCount: count }),
+  addNotification: (notif) => set((state) => ({ notifications: [notif, ...state.notifications].slice(0, 100) })),
+  clearNotifications: () => set({ notifications: [] }),
+  setScheduledTasks: (tasks) => set({ scheduledTasks: tasks }),
+  setPlugins: (plugins) => set({ plugins }),
+  setMemoryStats: (stats) => set({ memoryStats: stats }),
+  setModelConfig: (config) => set({ modelConfig: config }),
+}));
+
+export default useDataStore;

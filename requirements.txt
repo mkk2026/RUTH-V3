@@ -1,0 +1,44 @@
+fastapi
+uvicorn
+python-socketio
+python-multipart
+# Google GenAI SDK (v1beta)
+google-genai
+# Computer Vision & Audio
+opencv-python
+pyaudio
+pillow
+mss
+# Browser Automation
+playwright
+# Smart Home
+python-kasa
+# 3D Printing
+zeroconf>=0.131.0
+aiohttp>=3.9.0
+# Document Reading
+PyPDF2
+# Utilities
+python-dotenv
+# Face & Hand tracking
+mediapipe
+# CAD Generation
+build123d
+# --- Phase 1: Multi-Model Support (Optional providers) ---
+# anthropic         # Uncomment for Claude support
+# openai            # Uncomment for GPT support
+# ollama            # Uncomment for local Ollama models
+# --- Phase 1: Persistent Memory ---
+# chromadb          # Uncomment for vector-based semantic memory (recommended)
+# --- Phase 4: Integrations ---
+# google-auth-oauthlib  # Uncomment for Google OAuth (Gmail, Calendar)
+# --- Phase 5: Messaging ---
+# python-telegram-bot   # Uncomment for Telegram integration
+# discord.py            # Uncomment for Discord integration
+# slack-bolt            # Uncomment for Slack integration
+# --- Phase 6: Security & Network Tools ---
+shodan
+# --- Phase 7: MCP (Model Context Protocol) ---
+mcp
+# --- Phase 8: Discord Bot ---
+discord.py
