@@ -88,7 +88,7 @@ function App() {
 
     // RESTORED STATE
     const [aiAudioData, setAiAudioData] = useState(new Array(64).fill(0));
-    const [micAudioData, setMicAudioData] = useState(new Array(32).fill(0));
+    const [analyserState, setAnalyserState] = useState(null);
     const [fps, setFps] = useState(0);
 
     // Device states - microphones, speakers, webcams
@@ -725,21 +725,14 @@ function App() {
             sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
             sourceRef.current.connect(analyserRef.current);
 
-            const updateMicData = () => {
-                if (!analyserRef.current) return;
-                const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-                analyserRef.current.getByteFrequencyData(dataArray);
-                setMicAudioData(Array.from(dataArray));
-                animationFrameRef.current = requestAnimationFrame(updateMicData);
-            };
-
-            updateMicData();
+            setAnalyserState(analyserRef.current);
         } catch (err) {
             console.error("Error accessing microphone:", err);
         }
     };
 
     const stopMicVisualizer = () => {
+        setAnalyserState(null);
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         if (sourceRef.current) sourceRef.current.disconnect();
         if (audioContextRef.current) audioContextRef.current.close();
@@ -1461,7 +1454,7 @@ function App() {
 
                 {/* Top Visualizer (User Mic) */}
                 <div className="flex-1 flex justify-center mx-4">
-                    <TopAudioBar audioData={micAudioData} />
+                    <TopAudioBar analyser={analyserState} />
                 </div>
 
                 <div className="flex items-center gap-2 pr-2" style={{ WebkitAppRegion: 'no-drag' }}>
