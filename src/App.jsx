@@ -87,8 +87,8 @@ function App() {
 
 
     // RESTORED STATE
-    const [aiAudioData, setAiAudioData] = useState(new Array(64).fill(0));
-    const [micAudioData, setMicAudioData] = useState(new Array(32).fill(0));
+    const aiAudioDataRef = useRef(new Array(64).fill(0));
+    const micAudioDataRef = useRef(new Array(32).fill(0));
     const [fps, setFps] = useState(0);
 
     // Device states - microphones, speakers, webcams
@@ -151,8 +151,8 @@ function App() {
     ]);
 
     // Hand Control State
-    const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-    const [isPinching, setIsPinching] = useState(false);
+    const cursorPosRef = useRef({ x: 0, y: 0 });
+    const isPinchingRef = useRef(false);
     const [isHandTrackingEnabled, setIsHandTrackingEnabled] = useState(false); // DEFAULT OFF
     const [cursorSensitivity, setCursorSensitivity] = useState(2.0);
     const [isCameraFlipped, setIsCameraFlipped] = useState(false); // Gesture control camera flip
@@ -162,6 +162,7 @@ function App() {
     const cursorSensitivityRef = useRef(2.0);
     const isCameraFlippedRef = useRef(false);
     const handLandmarkerRef = useRef(null);
+    const handCursorRef = useRef(null);
     const cursorTrailRef = useRef([]); // Stores last N positions for trail
     const [ripples, setRipples] = useState([]); // Visual ripples on click
 
@@ -371,7 +372,7 @@ function App() {
             }
         });
         socket.on('audio_data', (data) => {
-            setAiAudioData(data.data);
+            aiAudioDataRef.current = data.data;
         });
         socket.on('auth_status', (data) => {
             console.log("Auth Status:", data);
@@ -729,7 +730,7 @@ function App() {
                 if (!analyserRef.current) return;
                 const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
                 analyserRef.current.getByteFrequencyData(dataArray);
-                setMicAudioData(Array.from(dataArray));
+                micAudioDataRef.current = Array.from(dataArray);
                 animationFrameRef.current = requestAnimationFrame(updateMicData);
             };
 
@@ -850,7 +851,7 @@ function App() {
                 const landmarks = results.landmarks[0];
 
                 // Log on first detection
-                if (cursorPos.x === 0 && cursorPos.y === 0) {
+                if (cursorPosRef.current.x === 0 && cursorPosRef.current.y === 0) {
                     console.log("First hand detection!", landmarks);
                 }
 
@@ -951,7 +952,12 @@ function App() {
                 }
 
                 // Update Cursor Loop
-                setCursorPos({ x: finalX, y: finalY });
+                cursorPosRef.current = { x: finalX, y: finalY };
+
+                if (handCursorRef.current) {
+                    handCursorRef.current.style.left = `${finalX}px`;
+                    handCursorRef.current.style.top = `${finalY}px`;
+                }
 
                 // Trail Logic: Removed per user request
 
@@ -961,7 +967,7 @@ function App() {
                 );
 
                 const isPinchNow = distance < 0.05; // Threshold
-                if (isPinchNow && !isPinching) {
+                if (isPinchNow && !isPinchingRef.current) {
                     // Click Triggered
                     console.log("Click triggered at", finalX, finalY);
 
@@ -978,7 +984,10 @@ function App() {
                         }
                     }
                 }
-                setIsPinching(isPinchNow);
+                isPinchingRef.current = isPinchNow;
+                if (handCursorRef.current) {
+                    handCursorRef.current.className = `fixed w-6 h-6 border-2 rounded-full pointer-events-none z-[100] transition-transform duration-75 ${isPinchNow ? 'bg-amber-400 border-amber-400 scale-75 shadow-[0_0_15px_rgba(251,191,36,0.8)]' : 'border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.3)]'}`;
+                }
 
                 // Fist Detection for Gesture-Based Dragging (Popup Windows Only)
                 // Detects if all fingers are folded (tips closer to wrist than MCPs)
@@ -1361,7 +1370,7 @@ function App() {
     };
 
     // Calculate Average Audio Amplitude for Background Pulse
-    const audioAmp = aiAudioData.reduce((a, b) => a + b, 0) / aiAudioData.length / 255;
+
 
     const toggleKasaWindow = () => {
         if (!showKasaWindow) {
@@ -1404,10 +1413,11 @@ function App() {
             {/* Hand Cursor - Only show if tracking is enabled */}
             {isVideoOn && isHandTrackingEnabled && (
                 <div
-                    className={`fixed w-6 h-6 border-2 rounded-full pointer-events-none z-[100] transition-transform duration-75 ${isPinching ? 'bg-amber-400 border-amber-400 scale-75 shadow-[0_0_15px_rgba(251,191,36,0.8)]' : 'border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.3)]'}`}
+                    ref={handCursorRef}
+                    className={`fixed w-6 h-6 border-2 rounded-full pointer-events-none z-[100] transition-transform duration-75 ${isPinchingRef.current ? 'bg-amber-400 border-amber-400 scale-75 shadow-[0_0_15px_rgba(251,191,36,0.8)]' : 'border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.3)]'}`}
                     style={{
-                        left: cursorPos.x,
-                        top: cursorPos.y,
+                        left: cursorPosRef.current.x,
+                        top: cursorPosRef.current.y,
                         transform: 'translate(-50%, -50%)'
                     }}
                 >
@@ -1461,7 +1471,7 @@ function App() {
 
                 {/* Top Visualizer (User Mic) */}
                 <div className="flex-1 flex justify-center mx-4">
-                    <TopAudioBar audioData={micAudioData} />
+                    <TopAudioBar audioDataRef={micAudioDataRef} />
                 </div>
 
                 <div className="flex items-center gap-2 pr-2" style={{ WebkitAppRegion: 'no-drag' }}>
@@ -1503,9 +1513,9 @@ function App() {
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay z-10"></div>
                     <div className="relative z-20">
                         <Visualizer
-                            audioData={aiAudioData}
+                            audioDataRef={aiAudioDataRef}
                             isListening={isConnected && !isMuted}
-                            intensity={audioAmp}
+
                             width={elementSizes.visualizer.w}
                             height={elementSizes.visualizer.h}
                         />
