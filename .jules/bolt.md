@@ -1,0 +1,3 @@
+## 2024-05-16 - Avoid React State for High-Frequency Audio Data Updates in Animation Loops
+**Learning:** Using `useState` inside a 60 FPS `requestAnimationFrame` loop to track audio data (like microphone levels) causes excessive re-renders of the root application component and triggers re-renders of all its children. Passing an array generated every frame also causes high GC pressure.
+**Action:** Always use a mutable `useRef` (e.g. holding a `Uint8Array`) to store high-frequency incoming data. Pass this ref down to visualizer components and have them pull data continuously via their own internal `requestAnimationFrame` loops on a `canvas` to bypass the React render cycle completely.

@@ -88,7 +88,7 @@ function App() {
 
     // RESTORED STATE
     const [aiAudioData, setAiAudioData] = useState(new Array(64).fill(0));
-    const [micAudioData, setMicAudioData] = useState(new Array(32).fill(0));
+    const micAudioDataRef = useRef(new Uint8Array(64));
     const [fps, setFps] = useState(0);
 
     // Device states - microphones, speakers, webcams
@@ -727,9 +727,7 @@ function App() {
 
             const updateMicData = () => {
                 if (!analyserRef.current) return;
-                const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-                analyserRef.current.getByteFrequencyData(dataArray);
-                setMicAudioData(Array.from(dataArray));
+                analyserRef.current.getByteFrequencyData(micAudioDataRef.current);
                 animationFrameRef.current = requestAnimationFrame(updateMicData);
             };
 
@@ -1461,7 +1459,7 @@ function App() {
 
                 {/* Top Visualizer (User Mic) */}
                 <div className="flex-1 flex justify-center mx-4">
-                    <TopAudioBar audioData={micAudioData} />
+                    <TopAudioBar audioDataRef={micAudioDataRef} />
                 </div>
 
                 <div className="flex items-center gap-2 pr-2" style={{ WebkitAppRegion: 'no-drag' }}>
