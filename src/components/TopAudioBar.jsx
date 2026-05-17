@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ analyser }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -8,7 +8,14 @@ const TopAudioBar = ({ audioData }) => {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
+        let animationId;
+        const dataArray = analyser ? new Uint8Array(analyser.frequencyBinCount) : new Uint8Array(32).fill(0);
+
         const draw = () => {
+            if (analyser) {
+                analyser.getByteFrequencyData(dataArray);
+            }
+
             const width = canvas.width;
             const height = canvas.height;
             ctx.clearRect(0, 0, width, height);
@@ -24,7 +31,7 @@ const TopAudioBar = ({ audioData }) => {
             const center = width / 2;
 
             for (let i = 0; i < totalBars / 2; i++) {
-                const value = audioData[i % audioData.length] || 0;
+                const value = dataArray[i % dataArray.length] || 0;
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
@@ -36,10 +43,16 @@ const TopAudioBar = ({ audioData }) => {
                 // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+
+            animationId = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        draw();
+
+        return () => {
+            if (animationId) cancelAnimationFrame(animationId);
+        };
+    }, [analyser]);
 
     return (
         <canvas
