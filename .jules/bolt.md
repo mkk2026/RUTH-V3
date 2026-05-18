@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid Top-Level React State for High-Frequency Data
+**Learning:** Storing high-frequency data (like 60 FPS audio data streams) in top-level state variables (`useState`) inside the root React component (`App.jsx`) is a critical performance anti-pattern. It causes massive, unneeded cascading app-wide re-renders.
+**Action:** When working with streams or high-frequency updates, maintain the data using `useRef` directly in the leaf components or pass the data source references (`socket` or `analyserNode`) as props. Leaf components can then manage their own `requestAnimationFrame` update loops or socket listeners without triggering expensive React virtual DOM diffs and re-renders for the entire application.
