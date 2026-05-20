@@ -1,0 +1,3 @@
+## 2026-05-20 - High-Frequency State Updates Cause Render Thrashing
+**Learning:** Storing high-frequency data like audio arrays (`aiAudioData` and `micAudioData`) in the root `App.jsx` state causes severe cascading app-wide re-renders because `App` contains numerous child components that are not memoized.
+**Action:** Use `useRef` for high-frequency data and let child components run their own internal `requestAnimationFrame` loops to pull from the refs, avoiding React state updates entirely for continuous data streams. When using `requestAnimationFrame`, ensure proper cleanup using `cancelAnimationFrame` to prevent CPU and memory leaks.
