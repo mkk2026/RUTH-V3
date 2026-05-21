@@ -87,8 +87,9 @@ function App() {
 
 
     // RESTORED STATE
-    const [aiAudioData, setAiAudioData] = useState(new Array(64).fill(0));
-    const [micAudioData, setMicAudioData] = useState(new Array(32).fill(0));
+    const aiAudioDataRef = useRef(new Array(64).fill(0));
+    const audioAmpRef = useRef(0);
+    const micAudioDataRef = useRef(new Array(32).fill(0));
     const [fps, setFps] = useState(0);
 
     // Device states - microphones, speakers, webcams
@@ -371,7 +372,8 @@ function App() {
             }
         });
         socket.on('audio_data', (data) => {
-            setAiAudioData(data.data);
+            aiAudioDataRef.current = data.data;
+            audioAmpRef.current = data.data.reduce((a, b) => a + b, 0) / data.data.length / 255;
         });
         socket.on('auth_status', (data) => {
             console.log("Auth Status:", data);
@@ -729,7 +731,7 @@ function App() {
                 if (!analyserRef.current) return;
                 const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
                 analyserRef.current.getByteFrequencyData(dataArray);
-                setMicAudioData(Array.from(dataArray));
+                micAudioDataRef.current = Array.from(dataArray);
                 animationFrameRef.current = requestAnimationFrame(updateMicData);
             };
 
@@ -1360,8 +1362,7 @@ function App() {
         window.removeEventListener('mouseup', handleMouseUp);
     };
 
-    // Calculate Average Audio Amplitude for Background Pulse
-    const audioAmp = aiAudioData.reduce((a, b) => a + b, 0) / aiAudioData.length / 255;
+    // Audio amplitude is now calculated via socket event and stored in audioAmpRef
 
     const toggleKasaWindow = () => {
         if (!showKasaWindow) {
@@ -1461,7 +1462,7 @@ function App() {
 
                 {/* Top Visualizer (User Mic) */}
                 <div className="flex-1 flex justify-center mx-4">
-                    <TopAudioBar audioData={micAudioData} />
+                    <TopAudioBar getAudioData={() => micAudioDataRef.current} />
                 </div>
 
                 <div className="flex items-center gap-2 pr-2" style={{ WebkitAppRegion: 'no-drag' }}>
@@ -1503,9 +1504,9 @@ function App() {
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay z-10"></div>
                     <div className="relative z-20">
                         <Visualizer
-                            audioData={aiAudioData}
+                            getAudioData={() => aiAudioDataRef.current}
                             isListening={isConnected && !isMuted}
-                            intensity={audioAmp}
+                            getIntensity={() => audioAmpRef.current}
                             width={elementSizes.visualizer.w}
                             height={elementSizes.visualizer.h}
                         />
