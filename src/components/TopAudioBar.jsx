@@ -1,17 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ audioDataRef }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
+        let animationId;
 
         const draw = () => {
             const width = canvas.width;
             const height = canvas.height;
             ctx.clearRect(0, 0, width, height);
+
+            const audioData = audioDataRef?.current || [];
 
             const barWidth = 4;
             const gap = 2;
@@ -36,10 +39,16 @@ const TopAudioBar = ({ audioData }) => {
                 // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+
+            animationId = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        draw();
+
+        return () => {
+            if (animationId) cancelAnimationFrame(animationId);
+        };
+    }, [audioDataRef]);
 
     return (
         <canvas
