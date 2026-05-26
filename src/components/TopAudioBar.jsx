@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ audioDataRef }) => {
     const canvasRef = useRef(null);
+    const animationFrameRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -22,9 +23,10 @@ const TopAudioBar = ({ audioData }) => {
             // We mirror it from center
 
             const center = width / 2;
+            const currentAudioData = audioDataRef.current || [];
 
             for (let i = 0; i < totalBars / 2; i++) {
-                const value = audioData[i % audioData.length] || 0;
+                const value = currentAudioData[i % currentAudioData.length] || 0;
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
@@ -36,10 +38,18 @@ const TopAudioBar = ({ audioData }) => {
                 // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+
+            animationFrameRef.current = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        draw();
+
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, []);
 
     return (
         <canvas

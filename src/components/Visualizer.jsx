@@ -1,19 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
-const Visualizer = ({ audioData, isListening, intensity = 0, width = 600, height = 400 }) => {
+const Visualizer = ({ audioDataRef, isListening, width = 600, height = 400 }) => {
     const canvasRef = useRef(null);
-
-    // Use a ref for audioData to avoid re-creating the animation loop on every frame
-    const audioDataRef = useRef(audioData);
-    const intensityRef = useRef(intensity);
     const isListeningRef = useRef(isListening);
 
     useEffect(() => {
-        audioDataRef.current = audioData;
-        intensityRef.current = intensity;
         isListeningRef.current = isListening;
-    }, [audioData, intensity, isListening]);
+    }, [isListening]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -36,7 +30,12 @@ const Visualizer = ({ audioData, isListening, intensity = 0, width = 600, height
             // Currently the effect only uses 'intensity', passed as prop. 
             // To ensure we aren't re-triggering this effect constantly, we use refs.
 
-            const currentIntensity = intensityRef.current;
+            const currentAudioData = audioDataRef.current || [];
+            let sum = 0;
+            for (let i = 0; i < currentAudioData.length; i++) {
+                sum += currentAudioData[i];
+            }
+            const currentIntensity = currentAudioData.length > 0 ? (sum / currentAudioData.length) / 255 : 0;
             const currentIsListening = isListeningRef.current;
 
             const baseRadius = Math.min(w, h) * 0.25;
