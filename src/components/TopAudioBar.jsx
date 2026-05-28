@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ analyserRef }) => {
     const canvasRef = useRef(null);
+    const animationFrameRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -9,6 +10,14 @@ const TopAudioBar = ({ audioData }) => {
         const ctx = canvas.getContext('2d');
 
         const draw = () => {
+            if (!analyserRef || !analyserRef.current) {
+                 animationFrameRef.current = requestAnimationFrame(draw);
+                 return;
+            }
+
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+            analyserRef.current.getByteFrequencyData(dataArray);
+
             const width = canvas.width;
             const height = canvas.height;
             ctx.clearRect(0, 0, width, height);
@@ -17,14 +26,10 @@ const TopAudioBar = ({ audioData }) => {
             const gap = 2;
             const totalBars = Math.floor(width / (barWidth + gap));
 
-            // Simple visualization logic
-            // Assuming audioData is an array of 0-255 values
-            // We mirror it from center
-
             const center = width / 2;
 
             for (let i = 0; i < totalBars / 2; i++) {
-                const value = audioData[i % audioData.length] || 0;
+                const value = dataArray[i % dataArray.length] || 0;
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
@@ -36,10 +41,18 @@ const TopAudioBar = ({ audioData }) => {
                 // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+
+            animationFrameRef.current = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        draw();
+
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [analyserRef]);
 
     return (
         <canvas
