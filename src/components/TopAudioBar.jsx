@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ analyser }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -8,7 +8,15 @@ const TopAudioBar = ({ audioData }) => {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
+        let animationId;
         const draw = () => {
+            let audioData = new Array(32).fill(0);
+            if (analyser) {
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(dataArray);
+                audioData = Array.from(dataArray);
+            }
+
             const width = canvas.width;
             const height = canvas.height;
             ctx.clearRect(0, 0, width, height);
@@ -17,10 +25,6 @@ const TopAudioBar = ({ audioData }) => {
             const gap = 2;
             const totalBars = Math.floor(width / (barWidth + gap));
 
-            // Simple visualization logic
-            // Assuming audioData is an array of 0-255 values
-            // We mirror it from center
-
             const center = width / 2;
 
             for (let i = 0; i < totalBars / 2; i++) {
@@ -28,18 +32,17 @@ const TopAudioBar = ({ audioData }) => {
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
-                ctx.fillStyle = `rgba(251, 191, 36, ${0.2 + percent * 0.8})`; // Cyan with opacity
+                ctx.fillStyle = `rgba(251, 191, 36, ${0.2 + percent * 0.8})`;
 
-                // Right side
                 ctx.fillRect(center + i * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
-
-                // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+            animationId = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        draw();
+        return () => cancelAnimationFrame(animationId);
+    }, [analyser]);
 
     return (
         <canvas
