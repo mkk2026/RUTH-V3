@@ -1,0 +1,3 @@
+## 2026-05-30 - [Audio Visualization React Rerender Loop Prevention]
+**Learning:** High-frequency data (like mic analyzer frequency data running at 60fps or streaming socket audio events) should never be stored in the root `App.jsx` using `useState`. Doing so causes severe cascading app-wide re-renders that drastically hurt performance.
+**Action:** When a high-frequency continuous data stream is needed for a specific component (like a Visualizer or AudioBar), store the raw array in a `useRef` at the parent level and pass the ref down. The child components should then implement their own `requestAnimationFrame` loops to read `ref.current` and update their canvas internally, completely decoupling the animation loop from the React render cycle.
