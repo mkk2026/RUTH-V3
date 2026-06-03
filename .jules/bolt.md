@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid storing high-frequency data in root component state
+**Learning:** Storing high-frequency data, such as audio analyzer arrays (`aiAudioData`, `micAudioData`), in the root `App.jsx` `useState` triggers severe app-wide cascading re-renders on every animation frame (60fps), drastically degrading performance.
+**Action:** Always use `useRef` to store high-frequency data buffers. Pass the ref down to specific child components (like `Visualizer` or `TopAudioBar`) and let them read the current value inside their own local `requestAnimationFrame` loops, keeping the data flow out of the React rendering cycle.
