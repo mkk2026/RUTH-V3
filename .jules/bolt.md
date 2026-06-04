@@ -1,0 +1,3 @@
+## 2024-06-04 - Avoid high-frequency state updates in root component
+**Learning:** Storing high-frequency data (like mic audio byte arrays 60 times a second, or streaming AI audio arrays) in the root React component's state (`App.jsx`) forces the entire application and all its children to re-render constantly, leading to severe performance issues.
+**Action:** When working with high-frequency updates (like audio or video visualization), either pass the source node (e.g. `analyser`) as a prop and let the child component run its own `requestAnimationFrame` loop, or let the child listen to high-frequency socket events directly. Avoid putting such data into `useState` in high-level parent components.
