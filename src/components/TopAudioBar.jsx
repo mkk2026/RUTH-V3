@@ -1,30 +1,50 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ analyserRef }) => {
     const canvasRef = useRef(null);
+    const animationFrameRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
+        // Create a local data array to store frequency data
+        const dataArray = new Uint8Array(32); // Default fallback size
+        let actualDataArray = null;
+
         const draw = () => {
             const width = canvas.width;
             const height = canvas.height;
             ctx.clearRect(0, 0, width, height);
+
+            // Get data from the analyser node directly
+            if (analyserRef?.current) {
+                if (!actualDataArray || actualDataArray.length !== analyserRef.current.frequencyBinCount) {
+                     actualDataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+                }
+                analyserRef.current.getByteFrequencyData(actualDataArray);
+                // Copy over to our fixed size array for visualization
+                for (let i = 0; i < Math.min(dataArray.length, actualDataArray.length); i++) {
+                    dataArray[i] = actualDataArray[i];
+                }
+            } else {
+                // If no analyser, zero out the array
+                dataArray.fill(0);
+            }
 
             const barWidth = 4;
             const gap = 2;
             const totalBars = Math.floor(width / (barWidth + gap));
 
             // Simple visualization logic
-            // Assuming audioData is an array of 0-255 values
+            // Assuming data is an array of 0-255 values
             // We mirror it from center
 
             const center = width / 2;
 
             for (let i = 0; i < totalBars / 2; i++) {
-                const value = audioData[i % audioData.length] || 0;
+                const value = dataArray[i % dataArray.length] || 0;
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
@@ -36,10 +56,18 @@ const TopAudioBar = ({ audioData }) => {
                 // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+
+            animationFrameRef.current = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        animationFrameRef.current = requestAnimationFrame(draw);
+
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [analyserRef]);
 
     return (
         <canvas

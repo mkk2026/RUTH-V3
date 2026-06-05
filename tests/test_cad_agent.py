@@ -15,7 +15,7 @@ class TestCadAgentInit:
         """Test CadAgent can be created."""
         agent = CadAgent()
         assert agent is not None
-        assert hasattr(agent, 'client')
+        assert hasattr(agent, 'router')
         print("CadAgent initialized successfully")
     
     def test_agent_with_callbacks(self):
@@ -113,11 +113,11 @@ class TestCadIteration:
 class TestCadSystemPrompt:
     """Test CAD agent system prompt configuration."""
     
-    def test_system_prompt_exists(self):
+    def test_system_instruction_exists(self):
         """Test that system prompt is defined."""
         agent = CadAgent()
         # The agent should have a system prompt for Gemini
-        assert hasattr(agent, 'system_prompt') or hasattr(agent, 'client')
+        assert hasattr(agent, 'system_instruction') or hasattr(agent, 'router')
 
 
 class TestBuild123dImport:
