@@ -1,17 +1,25 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ analyserRef }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
+        let animationId;
 
         const draw = () => {
             const width = canvas.width;
             const height = canvas.height;
             ctx.clearRect(0, 0, width, height);
+
+            let audioData = [];
+            if (analyserRef && analyserRef.current) {
+                const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+                analyserRef.current.getByteFrequencyData(dataArray);
+                audioData = Array.from(dataArray);
+            }
 
             const barWidth = 4;
             const gap = 2;
@@ -24,7 +32,7 @@ const TopAudioBar = ({ audioData }) => {
             const center = width / 2;
 
             for (let i = 0; i < totalBars / 2; i++) {
-                const value = audioData[i % audioData.length] || 0;
+                const value = (audioData && audioData.length > 0) ? (audioData[i % audioData.length] || 0) : 0;
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
@@ -36,10 +44,18 @@ const TopAudioBar = ({ audioData }) => {
                 // Left side
                 ctx.fillRect(center - (i + 1) * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
             }
+
+            animationId = requestAnimationFrame(draw);
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        draw();
+
+        return () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        };
+    }, [analyserRef]);
 
     return (
         <canvas

@@ -1,0 +1,3 @@
+## 2024-06-07 - Avoid React State for 60fps High-Frequency Data
+**Learning:** Storing high-frequency visualizer data (e.g. 60fps array outputs from audio context analysers) directly in the root `App.jsx` React state using `useState` causes a severe performance bottleneck due to cascading re-renders across the entire application tree.
+**Action:** Always bypass React state for high-frequency animation data. Pass `socket` instances or `analyserRef` down to the specific visualizer child components, and allow them to manage their own local update loops internally using refs (`useRef`) and `requestAnimationFrame`. Ensure to always cancel the animation frame on component unmount.
