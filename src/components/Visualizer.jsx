@@ -1,19 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
-const Visualizer = ({ audioData, isListening, intensity = 0, width = 600, height = 400 }) => {
+const Visualizer = ({ audioDataRef, isListening, intensityRef, width = 600, height = 400 }) => {
     const canvasRef = useRef(null);
 
-    // Use a ref for audioData to avoid re-creating the animation loop on every frame
-    const audioDataRef = useRef(audioData);
-    const intensityRef = useRef(intensity);
     const isListeningRef = useRef(isListening);
 
     useEffect(() => {
-        audioDataRef.current = audioData;
-        intensityRef.current = intensity;
         isListeningRef.current = isListening;
-    }, [audioData, intensity, isListening]);
+    }, [isListening]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
