@@ -1,0 +1,3 @@
+## 2025-03-09 - Avoid Storing High-Frequency Visualizer Data in State
+**Learning:** Storing high-frequency data (like audio analyzer arrays or frequent socket events) in the root React component (`App.jsx`) state using `useState` causes severe cascading app-wide re-renders. This is a critical performance bottleneck specific to this codebase's architecture where many components sit in the main view.
+**Action:** Always use `useRef` to store high-frequency data. Pass the ref to child components (e.g., `Visualizer` or `TopAudioBar`) and let them read from `ref.current` inside their own internal `requestAnimationFrame` loops to update canvases independently of React's render cycle.
