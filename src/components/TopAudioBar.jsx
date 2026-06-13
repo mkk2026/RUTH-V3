@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const TopAudioBar = ({ audioData }) => {
+const TopAudioBar = ({ audioDataRef }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -24,7 +24,7 @@ const TopAudioBar = ({ audioData }) => {
             const center = width / 2;
 
             for (let i = 0; i < totalBars / 2; i++) {
-                const value = audioData[i % audioData.length] || 0;
+                const value = audioDataRef.current[i % audioDataRef.current.length] || 0;
                 const percent = value / 255;
                 const barHeight = Math.max(2, percent * height);
 
@@ -38,8 +38,14 @@ const TopAudioBar = ({ audioData }) => {
             }
         };
 
-        requestAnimationFrame(draw);
-    }, [audioData]);
+        let animationId;
+        const loop = () => {
+            draw();
+            animationId = requestAnimationFrame(loop);
+        };
+        loop();
+        return () => cancelAnimationFrame(animationId);
+    }, [audioDataRef]);
 
     return (
         <canvas
