@@ -1,0 +1,3 @@
+## 2026-06-15 - Prevent Cascading Re-renders from High-Frequency Audio Data
+**Learning:** Storing high-frequency data (like audio analyzer arrays or frequent socket events) in the root React component (`App.jsx`) state causes severe cascading app-wide re-renders (e.g., 60 times a second), degrading performance across all components.
+**Action:** Always avoid storing rapidly changing continuous data in root React state. Instead, use `useRef` for mutable continuous data, pass the ref down to child visualization components (like `Visualizer.jsx` and `TopAudioBar.jsx`), and let them handle their own update loops using `requestAnimationFrame`.
