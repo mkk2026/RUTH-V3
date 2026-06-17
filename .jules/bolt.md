@@ -1,0 +1,3 @@
+## 2026-06-17 - Avoid High-Frequency Data in Root State
+**Learning:** Storing high-frequency data (like mic and audio analyser frequency arrays) in the root component state (`App.jsx`) is a severe anti-pattern in this React architecture. It causes continuous, app-wide cascading re-renders, dropping performance significantly.
+**Action:** Always utilize `useRef` for high-frequency dynamic values and pass those refs down to the visual child components (`Visualizer`, `TopAudioBar`). Let the children read from `.current` inside their own internal `requestAnimationFrame` loops, completely bypassing the React render cycle.
