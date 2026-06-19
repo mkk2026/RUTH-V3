@@ -54,7 +54,11 @@ from memory.manager import MemoryManager
 from sandbox import CodeSandbox
 
 # Create a Socket.IO server
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+# CORS origins are configurable via RUTH_CORS_ORIGINS (comma-separated).
+# Defaults to '*' for local development; set explicit origins if ever exposed.
+_cors_env = os.environ.get("RUTH_CORS_ORIGINS", "*").strip()
+_cors_origins = "*" if _cors_env in ("", "*") else [o.strip() for o in _cors_env.split(",") if o.strip()]
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=_cors_origins)
 app = FastAPI()
 app_socketio = socketio.ASGIApp(sio, app)
 
