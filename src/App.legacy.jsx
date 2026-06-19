@@ -23,7 +23,6 @@ import SchedulerWindow from './components/SchedulerWindow';
 import AlertCenter from './components/AlertCenter';
 import IntegrationPanel from './components/IntegrationPanel';
 import MessagingSettings from './components/MessagingSettings';
-import NeuralAvatar from './components/NeuralAvatar';
 
 
 
@@ -79,7 +78,6 @@ function App() {
     const [showPlugins, setShowPlugins] = useState(false);
     const [showModelSettings, setShowModelSettings] = useState(false);
     const [showMemoryViewer, setShowMemoryViewer] = useState(false);
-    const [showNeural, setShowNeural] = useState(false); // Neural Avatar fullscreen overlay
 
     // Printing workflow status (for top toolbar display)
     const [slicingStatus, setSlicingStatus] = useState({ active: false, percent: 0, message: '' });
@@ -727,11 +725,14 @@ function App() {
             sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
             sourceRef.current.connect(analyserRef.current);
 
+            // Pre-allocate the array outside the animation loop to prevent garbage collection stuttering
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+
             const updateMicData = () => {
                 if (!analyserRef.current) return;
-                const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
                 analyserRef.current.getByteFrequencyData(dataArray);
-                micAudioDataRef.current = Array.from(dataArray);
+                // Assign the typed array directly instead of re-allocating a new JS Array via Array.from() every frame
+                micAudioDataRef.current = dataArray;
                 animationFrameRef.current = requestAnimationFrame(updateMicData);
             };
 
@@ -1076,14 +1077,16 @@ function App() {
 
         // Connections
         const connections = HandLandmarker.HAND_CONNECTIONS;
+
+        // Batch draw calls: single beginPath and stroke outside the loop
+        ctx.beginPath();
         for (const connection of connections) {
             const start = landmarks[connection.start];
             const end = landmarks[connection.end];
-            ctx.beginPath();
             ctx.moveTo(start.x * canvasRef.current.width, start.y * canvasRef.current.height);
             ctx.lineTo(end.x * canvasRef.current.width, end.y * canvasRef.current.height);
-            ctx.stroke();
         }
+        ctx.stroke();
     };
 
     const stopVideo = () => {
@@ -1381,24 +1384,6 @@ function App() {
 
     return (
         <div className="h-screen w-screen bg-black text-amber-100 font-mono overflow-hidden flex flex-col relative selection:bg-amber-900 selection:text-white">
-
-            {/* --- NEURAL AVATAR --- */}
-            {/* Toggle button (always available once authenticated) */}
-            {isAuthenticated && (
-                <button
-                    className="neural-toggle-btn"
-                    onClick={() => setShowNeural(v => !v)}
-                    title="Toggle Neural Avatar"
-                >
-                    {showNeural ? 'Exit Neural' : '◉ Neural Avatar'}
-                </button>
-            )}
-            {/* Fullscreen overlay — shares the backend via its own socket */}
-            {showNeural && (
-                <div className="neural-overlay">
-                    <NeuralAvatar socketUrl="http://localhost:8000" />
-                </div>
-            )}
 
             {/* --- PREMIUM UI LAYER --- */}
 
