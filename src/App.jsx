@@ -725,11 +725,14 @@ function App() {
             sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
             sourceRef.current.connect(analyserRef.current);
 
+            // Pre-allocate the array outside the animation loop to prevent garbage collection stuttering
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+
             const updateMicData = () => {
                 if (!analyserRef.current) return;
-                const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
                 analyserRef.current.getByteFrequencyData(dataArray);
-                micAudioDataRef.current = Array.from(dataArray);
+                // Assign the typed array directly instead of re-allocating a new JS Array via Array.from() every frame
+                micAudioDataRef.current = dataArray;
                 animationFrameRef.current = requestAnimationFrame(updateMicData);
             };
 
@@ -1074,14 +1077,16 @@ function App() {
 
         // Connections
         const connections = HandLandmarker.HAND_CONNECTIONS;
+
+        // Batch draw calls: single beginPath and stroke outside the loop
+        ctx.beginPath();
         for (const connection of connections) {
             const start = landmarks[connection.start];
             const end = landmarks[connection.end];
-            ctx.beginPath();
             ctx.moveTo(start.x * canvasRef.current.width, start.y * canvasRef.current.height);
             ctx.lineTo(end.x * canvasRef.current.width, end.y * canvasRef.current.height);
-            ctx.stroke();
         }
+        ctx.stroke();
     };
 
     const stopVideo = () => {
