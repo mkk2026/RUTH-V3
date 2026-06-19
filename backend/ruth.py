@@ -334,7 +334,7 @@ from printer_agent import PrinterAgent
 from providers.router import ModelRouter
 
 class AudioLoop:
-    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None, router=None, memory_manager=None, sandbox=None, task_scheduler=None, heartbeat_monitor=None, alert_manager=None, message_broker=None, mcp_manager=None):
+    def __init__(self, video_mode=DEFAULT_MODE, on_audio_data=None, on_video_frame=None, on_cad_data=None, on_web_data=None, on_transcription=None, on_tool_confirmation=None, on_cad_status=None, on_cad_thought=None, on_project_update=None, on_device_update=None, on_error=None, on_tool_call=None, input_device_index=None, input_device_name=None, output_device_index=None, kasa_agent=None, router=None, memory_manager=None, sandbox=None, task_scheduler=None, heartbeat_monitor=None, alert_manager=None, message_broker=None, mcp_manager=None):
         self.video_mode = video_mode
         self.on_audio_data = on_audio_data
         self.on_video_frame = on_video_frame
@@ -347,6 +347,7 @@ class AudioLoop:
         self.on_project_update = on_project_update
         self.on_device_update = on_device_update
         self.on_error = on_error
+        self.on_tool_call = on_tool_call  # Neural Avatar: fired per model tool call
         self.input_device_index = input_device_index
         self.input_device_name = input_device_name
         self.output_device_index = output_device_index
@@ -1156,6 +1157,13 @@ class AudioLoop:
                         for fc in response.tool_call.function_calls:
                             if fc.name in ALL_TOOL_NAMES:
                                 prompt = fc.args.get("prompt", "")
+
+                                # Neural Avatar: notify that a tool call is starting
+                                if self.on_tool_call:
+                                    try:
+                                        self.on_tool_call(fc.name, dict(fc.args) if fc.args else {})
+                                    except Exception as _e:
+                                        print(f"[RUTH DEBUG] on_tool_call callback failed: {_e}")
 
                                 # Check Permissions (Default to True if not set)
                                 confirmation_required = self.permissions.get(fc.name, True)

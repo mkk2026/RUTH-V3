@@ -538,6 +538,14 @@ async def start_audio(sid, data=None):
         print(f"Sending Error to frontend: {msg}")
         asyncio.create_task(sio.emit('error', {'msg': msg}))
 
+    # Callback for Neural Avatar: a tool is being executed by the model
+    def on_tool_call(tool_name, params=None):
+        asyncio.create_task(sio.emit('ruth_tool_call', {
+            'tool_name': tool_name,
+            'description': f'Executing {tool_name}...',
+            'params': params or {},
+        }))
+
     # Initialize AudioLoop
     if ruth is None:
         print("[SERVER] ruth module not available -- voice features disabled.")
@@ -558,6 +566,7 @@ async def start_audio(sid, data=None):
             on_project_update=on_project_update,
             on_device_update=on_device_update,
             on_error=on_error,
+            on_tool_call=on_tool_call,
             input_device_index=device_index,
             input_device_name=device_name,
             kasa_agent=kasa_agent,
@@ -753,6 +762,9 @@ async def user_input(sid, data):
             except Exception as e:
                 print(f"[SERVER DEBUG] Failed to send piggyback frame: {e}")
                 
+        # Neural Avatar: signal that RUTH is now processing the query
+        await sio.emit('ruth_thinking', {'thought': 'Analyzing query...', 'query': text[:100]})
+
         try:
             await audio_loop.session.send(input=text, end_of_turn=True)
             print(f"[SERVER DEBUG] Message sent to model successfully.")
