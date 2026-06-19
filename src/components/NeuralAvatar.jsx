@@ -105,6 +105,10 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
   // Fallback idle timer: RUTH-V3 streams transcription deltas with no explicit
   // "turn complete" event, so we return to IDLE after a quiet gap.
   const idleTimerRef = useRef(null);
+  // Latest speech-recognition transcript (avoids stale closure in onend).
+  const latestTranscriptRef = useRef('');
+  // Ensure the backend session is booted only once, not on every reconnect.
+  const hasBootedRef = useRef(false);
 
   // Keep stateRef in sync
   useEffect(() => { stateRef.current = currentState; }, [currentState]);
@@ -122,13 +126,14 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('[NeuralAvatar] Connected to RUTH-V3');
       setIsConnected(true);
       socket.emit('avatar_register', { type: 'neural_avatar' });
       // As the primary RUTH display, boot the backend voice/session loop so that
       // text and voice 'user_input' is accepted. Start muted: the avatar drives
       // voice via the browser mic button, so the backend mic stays paused.
-      if (bootSession) {
+      // Guard against re-running on every auto-reconnect.
+      if (bootSession && !hasBootedRef.current) {
+        hasBootedRef.current = true;
         socket.emit('start_audio', { muted: true });
         socket.emit('discover_kasa');
         socket.emit('discover_printers');
@@ -136,7 +141,6 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
     });
 
     socket.on('disconnect', () => {
-      console.log('[NeuralAvatar] Disconnected from RUTH-V3');
       setIsConnected(false);
     });
 
@@ -302,7 +306,7 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
       if (toolTimeoutRef.current) clearTimeout(toolTimeoutRef.current);
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
-  }, [socketUrl]);
+  }, [socketUrl, bootSession]);
 
   // ==========================================
   // THREE.JS SCENE SETUP
@@ -783,7 +787,24 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('mousemove', handleMouseMove);
-      if (rendererRef.current && containerRef.current) {
+      // Release GPU memory: dispose every geometry/material in the scene graph.
+      scene.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+          materials.forEach((m) => {
+            Object.values(m).forEach((v) => {
+              if (v && typeof v === 'object' && 'minFilter' in v && typeof v.dispose === 'function') {
+                v.dispose(); // dispose textures
+              }
+            });
+            m.dispose();
+          });
+        }
+      });
+      packetGeoRef.current?.dispose();
+      composerRef.current?.dispose?.();
+      if (rendererRef.current && containerRef.current && rendererRef.current.domElement.parentNode === containerRef.current) {
         containerRef.current.removeChild(rendererRef.current.domElement);
       }
       rendererRef.current?.dispose();
@@ -844,7 +865,7 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
     setUserInput('');
   }, [userInput]);
 
-  const handleKeyPress = useCallback((e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter') handleSend();
   }, [handleSend]);
 
@@ -865,25 +886,30 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
+      latestTranscriptRef.current = '';
       setIsMicActive(true);
       setCurrentState(STATE.LISTENING);
     };
 
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+      latestTranscriptRef.current = transcript;
       setUserInput(transcript);
     };
 
     recognition.onend = () => {
       setIsMicActive(false);
-      if (userInput.trim()) {
-        socketRef.current?.emit('user_input', { text: userInput.trim(), source: 'voice' });
+      // Read the live transcript from the ref, not the stale closure value.
+      const finalText = latestTranscriptRef.current.trim();
+      if (finalText) {
+        socketRef.current?.emit('user_input', { text: finalText, source: 'voice' });
         setUserInput('');
+        latestTranscriptRef.current = '';
       }
     };
 
     recognition.start();
-  }, [isMicActive, userInput]);
+  }, [isMicActive]);
 
   // Cleanup typing interval
   useEffect(() => {
@@ -1013,18 +1039,21 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
               type="text"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               placeholder="Ask RUTH anything, or click the mic..."
               className="user-input"
+              aria-label="Message to RUTH"
             />
-            <button 
+            <button
               className={`control-btn ${isMicActive ? 'active' : ''}`}
               onClick={toggleMic}
               title="Voice Input"
+              aria-label="Voice input"
+              aria-pressed={isMicActive}
             >
               🎤
             </button>
-            <button className="control-btn send-btn" onClick={handleSend} title="Send">
+            <button className="control-btn send-btn" onClick={handleSend} title="Send" aria-label="Send message">
               →
             </button>
           </div>
