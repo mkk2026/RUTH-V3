@@ -6,3 +6,7 @@
 ## 2024-06-19 - Zero-allocation audio loop and batched canvas rendering
 **Learning:** Frequent object allocation in hot loops like `requestAnimationFrame` (e.g. allocating `new Uint8Array` or calling `Array.from()` every frame) triggers aggressive garbage collection, leading to frame drops and jank. Likewise, executing separate path operations (`beginPath` and `stroke`) in loops inside canvas rendering creates massive CPU overhead due to numerous separate draw calls.
 **Action:** Always declare Typed Arrays or object containers *outside* hot loops and assign their data inside. When rendering multiple similar geometric objects on a canvas, wrap the entire collection in a single `beginPath()` and `stroke()` block to batch the draw calls.
+
+## 2024-06-21 - Avoid React state thrashing in requestAnimationFrame
+**Learning:** Calling React `setState` inside a `requestAnimationFrame` loop, even if partially "throttled", easily triggers re-renders across multiple frames if the throttling logic condition triggers repeatedly (e.g. `Math.floor(time * 10) % 5 === 0` holds true over multiple continuous frames).
+**Action:** Replace `setState` with `useRef` directly mutating the DOM for rapidly updating telemetry displays avoiding React re-renders altogether.
