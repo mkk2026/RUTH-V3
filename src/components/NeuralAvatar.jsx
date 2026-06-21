@@ -59,12 +59,10 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
   const [currentState, setCurrentState] = useState(STATE.IDLE);
   const [thoughtText, setThoughtText] = useState('');
   const [toolNotification, setToolNotification] = useState(null);
-  const [metrics, setMetrics] = useState({
-    load: 0,
-    velocity: 0,
-    nodes: 0,
-    flux: 0
-  });
+  const metricsLoadRef = useRef(null);
+  const metricsVelocityRef = useRef(null);
+  const metricsNodesRef = useRef(null);
+  const metricsFluxRef = useRef(null);
   const [activeTools, setActiveTools] = useState(new Set());
   const [isConnected, setIsConnected] = useState(false);
   const [userInput, setUserInput] = useState('');
@@ -548,6 +546,8 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
     packetGeoRef.current = new THREE.SphereGeometry(0.06, 8, 8);
     packetMatRef.current = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
+    const stateColor = new THREE.Color();
+
     // ==========================================
     // PARTICLE FIELD
     // ==========================================
@@ -665,14 +665,15 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
 
       // Update particles
       const positions = particlesGeo.attributes.position.array;
-      const stateColor = new THREE.Color();
+      let targetHex = 0x00d4ff;
       switch(state) {
-        case STATE.IDLE: stateColor.setHex(0x00d4ff); break;
-        case STATE.LISTENING: stateColor.setHex(0x00ff88); break;
-        case STATE.THINKING: stateColor.setHex(0xff00ff); break;
-        case STATE.TOOL_CALL: stateColor.setHex(0xffa500); break;
-        case STATE.SPEAKING: stateColor.setHex(0xffffff); break;
+        case STATE.IDLE: targetHex = 0x00d4ff; break;
+        case STATE.LISTENING: targetHex = 0x00ff88; break;
+        case STATE.THINKING: targetHex = 0xff00ff; break;
+        case STATE.TOOL_CALL: targetHex = 0xffa500; break;
+        case STATE.SPEAKING: targetHex = 0xffffff; break;
       }
+      stateColor.setHex(targetHex);
       particlesMat.color.lerp(stateColor, 0.05);
 
       for (let i = 0; i < particleCount; i++) {
@@ -745,14 +746,12 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
       neuralActivityRef.current *= 0.98;
       tokenVelocityRef.current *= 0.95;
 
-      // Update React metrics state (throttled)
+      // Update DOM metrics directly (throttled)
       if (Math.floor(time * 10) % 5 === 0) {
-        setMetrics({
-          load: Math.floor(neuralActivityRef.current * 100),
-          velocity: Math.floor(tokenVelocityRef.current),
-          nodes: activeNodeCountRef.current,
-          flux: (Math.sin(time) * 0.5 + 0.5).toFixed(2)
-        });
+        if (metricsLoadRef.current) metricsLoadRef.current.textContent = `${Math.floor(neuralActivityRef.current * 100)}%`;
+        if (metricsVelocityRef.current) metricsVelocityRef.current.textContent = `${Math.floor(tokenVelocityRef.current)} t/s`;
+        if (metricsNodesRef.current) metricsNodesRef.current.textContent = activeNodeCountRef.current;
+        if (metricsFluxRef.current) metricsFluxRef.current.textContent = (Math.sin(time) * 0.5 + 0.5).toFixed(2);
       }
 
       composer.render();
@@ -973,19 +972,19 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
             <div className="panel-title">Neural Metrics</div>
             <div className="metric-row">
               <span className="metric-label">Synaptic Load</span>
-              <span className="metric-value">{metrics.load}%</span>
+              <span className="metric-value" ref={metricsLoadRef}>0%</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Token Velocity</span>
-              <span className="metric-value">{metrics.velocity} t/s</span>
+              <span className="metric-value" ref={metricsVelocityRef}>0 t/s</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Active Nodes</span>
-              <span className="metric-value">{metrics.nodes}</span>
+              <span className="metric-value" ref={metricsNodesRef}>0</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Neural Flux</span>
-              <span className="metric-value">{metrics.flux}</span>
+              <span className="metric-value" ref={metricsFluxRef}>0</span>
             </div>
           </div>
         </div>
