@@ -59,12 +59,10 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
   const [currentState, setCurrentState] = useState(STATE.IDLE);
   const [thoughtText, setThoughtText] = useState('');
   const [toolNotification, setToolNotification] = useState(null);
-  const [metrics, setMetrics] = useState({
-    load: 0,
-    velocity: 0,
-    nodes: 0,
-    flux: 0
-  });
+  const loadMetricRef = useRef(null);
+  const velocityMetricRef = useRef(null);
+  const nodesMetricRef = useRef(null);
+  const fluxMetricRef = useRef(null);
   const [activeTools, setActiveTools] = useState(new Set());
   const [isConnected, setIsConnected] = useState(false);
   const [userInput, setUserInput] = useState('');
@@ -745,14 +743,12 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
       neuralActivityRef.current *= 0.98;
       tokenVelocityRef.current *= 0.95;
 
-      // Update React metrics state (throttled)
+      // Update DOM nodes directly to prevent state thrashing and re-renders
       if (Math.floor(time * 10) % 5 === 0) {
-        setMetrics({
-          load: Math.floor(neuralActivityRef.current * 100),
-          velocity: Math.floor(tokenVelocityRef.current),
-          nodes: activeNodeCountRef.current,
-          flux: (Math.sin(time) * 0.5 + 0.5).toFixed(2)
-        });
+        if (loadMetricRef.current) loadMetricRef.current.textContent = `${Math.floor(neuralActivityRef.current * 100)}%`;
+        if (velocityMetricRef.current) velocityMetricRef.current.textContent = `${Math.floor(tokenVelocityRef.current)} t/s`;
+        if (nodesMetricRef.current) nodesMetricRef.current.textContent = `${activeNodeCountRef.current}`;
+        if (fluxMetricRef.current) fluxMetricRef.current.textContent = `${(Math.sin(time) * 0.5 + 0.5).toFixed(2)}`;
       }
 
       composer.render();
@@ -973,19 +969,19 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
             <div className="panel-title">Neural Metrics</div>
             <div className="metric-row">
               <span className="metric-label">Synaptic Load</span>
-              <span className="metric-value">{metrics.load}%</span>
+              <span className="metric-value" ref={loadMetricRef}>0%</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Token Velocity</span>
-              <span className="metric-value">{metrics.velocity} t/s</span>
+              <span className="metric-value" ref={velocityMetricRef}>0 t/s</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Active Nodes</span>
-              <span className="metric-value">{metrics.nodes}</span>
+              <span className="metric-value" ref={nodesMetricRef}>0</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Neural Flux</span>
-              <span className="metric-value">{metrics.flux}</span>
+              <span className="metric-value" ref={fluxMetricRef}>0.00</span>
             </div>
           </div>
         </div>
