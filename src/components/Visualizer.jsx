@@ -27,10 +27,15 @@ const Visualizer = ({ audioDataRef, isListening, width = 600, height = 400 }) =>
             const centerY = h / 2;
 
             // Calculate current intensity from audioDataRef directly
+            // ⚡ Bolt: Replaced Array.reduce with a standard for loop to eliminate per-element callback allocation overhead in this hot loop (requestAnimationFrame).
             let currentIntensity = 0;
             if (audioDataRef && audioDataRef.current) {
                 const data = audioDataRef.current;
-                currentIntensity = data.reduce((a, b) => a + b, 0) / data.length / 255;
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) {
+                    sum += data[i];
+                }
+                currentIntensity = sum / data.length / 255;
             }
 
             const currentIsListening = isListeningRef.current;
