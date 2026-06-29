@@ -6,3 +6,7 @@
 ## 2024-06-19 - Zero-allocation audio loop and batched canvas rendering
 **Learning:** Frequent object allocation in hot loops like `requestAnimationFrame` (e.g. allocating `new Uint8Array` or calling `Array.from()` every frame) triggers aggressive garbage collection, leading to frame drops and jank. Likewise, executing separate path operations (`beginPath` and `stroke`) in loops inside canvas rendering creates massive CPU overhead due to numerous separate draw calls.
 **Action:** Always declare Typed Arrays or object containers *outside* hot loops and assign their data inside. When rendering multiple similar geometric objects on a canvas, wrap the entire collection in a single `beginPath()` and `stroke()` block to batch the draw calls.
+
+## 2024-06-29 - Avoid Array.prototype.reduce in hot loops on large arrays
+**Learning:** Using `Array.prototype.reduce` inside high-frequency `requestAnimationFrame` loops on large typed arrays creates substantial per-element callback allocation overhead. This overhead contributes to CPU spikes and garbage collection jank in continuous visualization components.
+**Action:** Replace `reduce` with standard `for` loops in hot loops that process large arrays or typed arrays. A `for` loop is significantly faster because it eliminates the function call overhead for every element iteration.
