@@ -30,7 +30,15 @@ const Visualizer = ({ audioDataRef, isListening, width = 600, height = 400 }) =>
             let currentIntensity = 0;
             if (audioDataRef && audioDataRef.current) {
                 const data = audioDataRef.current;
-                currentIntensity = data.reduce((a, b) => a + b, 0) / data.length / 255;
+                // Performance Optimization: Use a standard for loop instead of Array.prototype.reduce
+                // inside the requestAnimationFrame loop to eliminate per-element callback allocation
+                // overhead and reduce garbage collection jank.
+                let sum = 0;
+                const len = data.length;
+                for (let i = 0; i < len; i++) {
+                    sum += data[i];
+                }
+                currentIntensity = (len > 0 ? sum / len : 0) / 255;
             }
 
             const currentIsListening = isListeningRef.current;
