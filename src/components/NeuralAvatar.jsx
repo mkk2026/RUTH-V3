@@ -59,12 +59,7 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
   const [currentState, setCurrentState] = useState(STATE.IDLE);
   const [thoughtText, setThoughtText] = useState('');
   const [toolNotification, setToolNotification] = useState(null);
-  const [metrics, setMetrics] = useState({
-    load: 0,
-    velocity: 0,
-    nodes: 0,
-    flux: 0
-  });
+  // metrics state removed to avoid re-rendering, using direct DOM mutation refs instead
   const [activeTools, setActiveTools] = useState(new Set());
   const [isConnected, setIsConnected] = useState(false);
   const [userInput, setUserInput] = useState('');
@@ -105,6 +100,13 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
   // Fallback idle timer: RUTH-V3 streams transcription deltas with no explicit
   // "turn complete" event, so we return to IDLE after a quiet gap.
   const idleTimerRef = useRef(null);
+  const frameCountRef = useRef(0);
+
+  // DOM Refs for metrics
+  const loadRef = useRef(null);
+  const velocityRef = useRef(null);
+  const nodesRefDOM = useRef(null);
+  const fluxRef = useRef(null);
 
   // Keep stateRef in sync
   useEffect(() => { stateRef.current = currentState; }, [currentState]);
@@ -745,14 +747,13 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
       neuralActivityRef.current *= 0.98;
       tokenVelocityRef.current *= 0.95;
 
-      // Update React metrics state (throttled)
-      if (Math.floor(time * 10) % 5 === 0) {
-        setMetrics({
-          load: Math.floor(neuralActivityRef.current * 100),
-          velocity: Math.floor(tokenVelocityRef.current),
-          nodes: activeNodeCountRef.current,
-          flux: (Math.sin(time) * 0.5 + 0.5).toFixed(2)
-        });
+      // Update metrics via direct DOM mutation
+      frameCountRef.current++;
+      if (frameCountRef.current % 10 === 0) {
+        if (loadRef.current) loadRef.current.textContent = `${Math.floor(neuralActivityRef.current * 100)}%`;
+        if (velocityRef.current) velocityRef.current.textContent = `${Math.floor(tokenVelocityRef.current)} t/s`;
+        if (nodesRefDOM.current) nodesRefDOM.current.textContent = activeNodeCountRef.current;
+        if (fluxRef.current) fluxRef.current.textContent = (Math.sin(time) * 0.5 + 0.5).toFixed(2);
       }
 
       composer.render();
@@ -973,19 +974,19 @@ export default function NeuralAvatar({ socketUrl = 'http://localhost:8000', boot
             <div className="panel-title">Neural Metrics</div>
             <div className="metric-row">
               <span className="metric-label">Synaptic Load</span>
-              <span className="metric-value">{metrics.load}%</span>
+              <span className="metric-value" ref={loadRef}>0%</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Token Velocity</span>
-              <span className="metric-value">{metrics.velocity} t/s</span>
+              <span className="metric-value" ref={velocityRef}>0 t/s</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Active Nodes</span>
-              <span className="metric-value">{metrics.nodes}</span>
+              <span className="metric-value" ref={nodesRefDOM}>0</span>
             </div>
             <div className="metric-row">
               <span className="metric-label">Neural Flux</span>
-              <span className="metric-value">{metrics.flux}</span>
+              <span className="metric-value" ref={fluxRef}>0.00</span>
             </div>
           </div>
         </div>
